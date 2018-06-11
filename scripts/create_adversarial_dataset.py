@@ -143,7 +143,7 @@ heldout = load_heldout(opt.heldout)
 adversarial_heldout = add_attacks(heldout, opt.swap_input, opt.level)
 heldout_with_attacks = "\n".join(["\t".join(line)
                                   for line in adversarial_heldout])
-filename = "{}_attacks.tsv".format(opt.heldout.split('/')[0].split('.')[0])
+filename = "{}_attacks.tsv".format(opt.heldout.split("/")[0].split('.')[0])
 with open(os.path.join(opt.output_dir, filename), 'w') as f:
     f.write(heldout_with_attacks)
 
