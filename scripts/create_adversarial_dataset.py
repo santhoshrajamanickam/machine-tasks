@@ -65,7 +65,7 @@ def swap(attention, level):
     return attention
 
 
-def add_attacks(heldout, swap_input, level):
+def add_attacks(heldout, swap_input, level, ignore_output_eos):
     """
     Change heldout data using adversarial attacks.
 
@@ -83,11 +83,17 @@ def add_attacks(heldout, swap_input, level):
 
         # If the input should also be swapped, include, else, exclude
         if not swap_input:
-            swapped = swap(attention[1:-1], level)
-            attention = attention[:1] + swapped + attention[-1:]
+            tables_attention = attention[1:-1]
+            swapped = swap(tables_attention, level)
+            swapped = attention[:1] + swapped
         else:
-            swapped = swap(attention[:-1], level)
+            tables_attention = attention[:-1]
+            swapped = swap(tables_attention, level)
+
+        if not ignore_output_eos:
             attention = swapped + attention[-1:]
+        else:
+            attention = swapped
 
         # Adapt the heldout line with the new attention
         attention = " ".join(attention)
@@ -96,7 +102,7 @@ def add_attacks(heldout, swap_input, level):
     return heldout
 
 
-def update_output(heldout, tables):
+def update_output(heldout, tables, ignore_output_eos):
     """
     Update the (intermediate) output steps based on the new attention.
 
@@ -131,6 +137,7 @@ parser.add_argument('--heldout', help='heldout data to be adapted by attacks', r
 parser.add_argument('--output_dir', default="", help='path to data directory.')
 parser.add_argument('--log-level', default='info', help='logging level.')
 parser.add_argument('--swap_input', action='store_true', help='whether input is included in swapping')
+parser.add_argument('--ignore_output_eos', action='store_true', help='whether to ignore EOS token')
 parser.add_argument('--level', default=1, help='number of swappings', type=int)
 
 opt = parser.parse_args()
@@ -140,20 +147,32 @@ logging.info(opt)
 
 tables = load_tables(opt.train)
 heldout = load_heldout(opt.heldout)
-adversarial_heldout = add_attacks(heldout, opt.swap_input, opt.level)
+
+# If the ignore EOS flag is set, also save the regular dataset without EOS
+if opt.ignore_output_eos:
+    heldout_without_eos = []
+    for line in heldout:
+        no_eos = " ".join(line[-1].split()[:-1])
+        heldout_without_eos.append([line[0], line[1], no_eos])
+    heldout_without_eos = "\n".join(["\t".join(line)
+                                      for line in heldout_without_eos])
+    filename = "{}_no_eos.tsv".format(opt.heldout.split("\\")[-1].split('.')[0])
+    with open(os.path.join(opt.output_dir, filename), 'w') as f:
+        f.write(heldout_without_eos)
+
+# Add the attacks
+adversarial_heldout = add_attacks(heldout, opt.swap_input, opt.level, opt.ignore_output_eos)
 heldout_with_attacks = "\n".join(["\t".join(line)
                                   for line in adversarial_heldout])
-filename = "{}_attacks.tsv".format(opt.heldout.split("/")[-1].split('.')[0])
+filename = "{}_attacks.tsv".format(opt.heldout.split("\\")[-1].split('.')[0])
 with open(os.path.join(opt.output_dir, filename), 'w') as f:
     f.write(heldout_with_attacks)
 
 # We cannot update the output if the input is swapped
 if not opt.swap_input:
-    adversarial_heldout = update_output(adversarial_heldout, tables)
+    adversarial_heldout = update_output(adversarial_heldout, tables, opt.ignore_output_eos)
     heldout_with_attacks_outputs = "\n".join(["\t".join(line)
                                               for line in adversarial_heldout])
-    filename = "{}_attacks_outputs.tsv".format(opt.heldout.split("/")[-1].split('.')[0])
-    print(filename)
-    print(opt.output_dir)
+    filename = "{}_attacks_outputs.tsv".format(opt.heldout.split("\\")[-1].split('.')[0])
     with open(os.path.join(opt.output_dir, filename), 'w') as f:
         f.write(heldout_with_attacks_outputs)
