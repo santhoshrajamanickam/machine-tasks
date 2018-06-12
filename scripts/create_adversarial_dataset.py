@@ -5,6 +5,7 @@ import random
 
 from pprint import pprint
 from collections import defaultdict
+import Levenshtein
 
 
 def load_tables(filename):
@@ -56,12 +57,25 @@ def swap(attention, level):
     Returns:
         list with attention swapped
     """
+
     if level >= len(attention):
         logging.warning("Number of swappings >= the attention length.")
 
-    for i in range(level):
-        j, k = tuple(random.sample(range(0, len(attention)), 2))
-        attention[j], attention[k] = attention[k], attention[j]
+    while True:
+
+        old_attention = attention
+        old_attention_string = ' '.join(old_attention)
+
+        for i in range(level):
+            j, k = tuple(random.sample(range(0, len(old_attention)), 2))
+            old_attention[j], old_attention[k] = old_attention[k], old_attention[j]
+
+        new_attention_string = ' '.join(old_attention)
+
+        if Levenshtein.distance(old_attention_string, new_attention_string) == (level + 1):
+            attention = old_attention
+            break
+
     return attention
 
 
