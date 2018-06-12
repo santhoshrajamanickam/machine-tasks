@@ -102,6 +102,15 @@ def add_attacks(heldout, swap_input, level, ignore_output_eos):
     return heldout
 
 
+def remove_doubles(heldout):
+    new_heldout = []
+    for i, line in enumerate(heldout):
+        input_sequence = line[0].split()[1:-1]
+        if len(set(input_sequence)) != 1:
+            new_heldout.append(line)
+    return new_heldout
+
+
 def update_output(heldout, tables, ignore_output_eos):
     """
     Update the (intermediate) output steps based on the new attention.
@@ -146,7 +155,7 @@ logging.basicConfig(format=log_format, level=getattr(logging, opt.log_level.uppe
 logging.info(opt)
 
 tables = load_tables(opt.train)
-heldout = load_heldout(opt.heldout)
+heldout = remove_doubles(load_heldout(opt.heldout))
 
 # If the ignore EOS flag is set, also save the regular dataset without EOS
 if opt.ignore_output_eos:
@@ -156,7 +165,7 @@ if opt.ignore_output_eos:
         heldout_without_eos.append([line[0], line[1], no_eos])
     heldout_without_eos = "\n".join(["\t".join(line)
                                       for line in heldout_without_eos])
-    filename = "{}_no_eos.tsv".format(opt.heldout.split("\\")[-1].split('.')[0])
+    filename = "{}_no_eos.tsv".format(opt.heldout.split("/")[-1].split('.')[0])
     with open(os.path.join(opt.output_dir, filename), 'w') as f:
         f.write(heldout_without_eos)
 
@@ -164,7 +173,7 @@ if opt.ignore_output_eos:
 adversarial_heldout = add_attacks(heldout, opt.swap_input, opt.level, opt.ignore_output_eos)
 heldout_with_attacks = "\n".join(["\t".join(line)
                                   for line in adversarial_heldout])
-filename = "{}_attacks.tsv".format(opt.heldout.split("\\")[-1].split('.')[0])
+filename = "{}_attacks.tsv".format(opt.heldout.split("/")[-1].split('.')[0])
 with open(os.path.join(opt.output_dir, filename), 'w') as f:
     f.write(heldout_with_attacks)
 
@@ -173,6 +182,6 @@ if not opt.swap_input:
     adversarial_heldout = update_output(adversarial_heldout, tables, opt.ignore_output_eos)
     heldout_with_attacks_outputs = "\n".join(["\t".join(line)
                                               for line in adversarial_heldout])
-    filename = "{}_attacks_outputs.tsv".format(opt.heldout.split("\\")[-1].split('.')[0])
+    filename = "{}_attacks_outputs.tsv".format(opt.heldout.split("/")[-1].split('.')[0])
     with open(os.path.join(opt.output_dir, filename), 'w') as f:
         f.write(heldout_with_attacks_outputs)
