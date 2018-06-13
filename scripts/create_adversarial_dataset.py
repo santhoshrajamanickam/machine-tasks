@@ -64,13 +64,13 @@ def swap(attention, level):
     while True:
 
         old_attention = attention
-        old_attention_string = ' '.join(old_attention)
+        old_attention_string = ''.join(old_attention)
 
         for i in range(level):
             j, k = tuple(random.sample(range(0, len(old_attention)), 2))
             old_attention[j], old_attention[k] = old_attention[k], old_attention[j]
 
-        new_attention_string = ' '.join(old_attention)
+        new_attention_string = ''.join(old_attention)
 
         if Levenshtein.distance(old_attention_string, new_attention_string) == (level + 1):
             attention = old_attention
