@@ -2,6 +2,7 @@ import os
 import argparse
 import logging
 import random
+import copy
 
 from pprint import pprint
 from collections import defaultdict
@@ -60,11 +61,11 @@ def swap(attention, level):
 
     if level >= len(attention):
         logging.warning("Number of swappings >= the attention length.")
+    old_attention_string = ''.join(attention)
 
     while True:
 
-        old_attention = attention
-        old_attention_string = ''.join(old_attention)
+        old_attention = copy.deepcopy(attention)
 
         for i in range(level):
             j, k = tuple(random.sample(range(0, len(old_attention)), 2))
